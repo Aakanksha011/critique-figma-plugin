@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Critique</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#FDF7F2; --surface:#FFF9F5; --surface-2:#FFF3E8;
+    --border:#EDE3D8; --border-2:#E0D2C2;
+    --text:#2C1F14; --text-2:#7A6553; --text-3:#B09A85;
+    --amber:#F07D2A; --amber-lt:#FEF0E3; --amber-md:#FDDBB8;
+    --red:#E05C3A; --red-lt:#FEF0ED;
+    --yellow:#E8A820; --yellow-lt:#FEF7E3;
+    --green:#3A9E6E; --green-lt:#EBF7F1;
+    --shadow:0 2px 12px rgba(44,31,20,0.07);
+    --plugin-h: 560px;
+    --header-h: 58px;
+    --results-header-h: 38px;
+    --footer-h: 44px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { height:var(--plugin-h); overflow:hidden; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); font-size:13px; height:var(--plugin-h); overflow:hidden; }
+
+  /* ── HEADER ── */
+  .header { background:var(--surface); border-bottom:1.5px solid var(--border); padding:13px 16px 11px; display:flex; align-items:center; gap:10px; height:var(--header-h); }
+  .logo { width:28px; height:28px; background:var(--amber); border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .logo svg { width:14px; height:14px; }
+  .plugin-name { font-family:'DM Serif Display',serif; font-size:14px; color:var(--text); }
+  .plugin-sub  { font-size:10px; color:var(--text-3); margin-top:1px; }
+  .badge { margin-left:auto; font-size:9px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--amber); background:var(--amber-lt); border:1px solid var(--amber-md); padding:2px 7px; border-radius:20px; }
+
+  /* ── VIEWS ── */
+  #view-input   { display:flex; flex-direction:column; gap:12px; padding:14px; }
+  #view-loading { display:none; flex-direction:column; align-items:center; justify-content:center; padding:52px 16px; gap:12px; }
+  #view-error   { display:none; flex-direction:column; align-items:center; justify-content:center; padding:44px 16px; gap:10px; text-align:center; }
+
+  /* ── RESULTS — fully JS-driven heights ── */
+  #view-results { display:none; flex-direction:column; }
+  .results-header { padding:10px 14px 9px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); height:var(--results-header-h); flex-shrink:0; }
+  .results-title { font-family:'DM Serif Display',serif; font-size:13px; color:var(--text); }
+  .results-count { font-size:10.5px; color:var(--text-3); font-weight:500; }
+
+  /* issue-list height set by JS — this is the key */
+  .issue-list { padding:10px 12px 14px; display:flex; flex-direction:column; gap:7px; overflow-y:scroll; }
+
+  .footer { padding:9px 14px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; height:var(--footer-h); background:var(--surface); flex-shrink:0; }
+
+  /* ── INPUT ── */
+  .drop-zone { border:1.5px dashed var(--border-2); border-radius:12px; padding:20px 14px; text-align:center; background:var(--surface-2); cursor:pointer; transition:all 0.2s; }
+  .drop-zone:hover, .drop-zone.has-frame { border-color:var(--amber); background:var(--amber-lt); border-style:solid; }
+  .drop-icon { width:32px; height:32px; background:white; border:1.5px solid var(--border); border-radius:9px; display:flex; align-items:center; justify-content:center; margin:0 auto 8px; box-shadow:var(--shadow); }
+  .drop-icon svg { width:15px; height:15px; color:var(--text-2); }
+  .drop-label { font-size:12px; font-weight:500; color:var(--text); margin-bottom:2px; }
+  .drop-sub   { font-size:10px; color:var(--text-3); }
+  .frame-preview { display:none; align-items:center; gap:10px; text-align:left; }
+  .frame-thumb { width:36px; height:36px; border-radius:7px; flex-shrink:0; background:linear-gradient(135deg,var(--amber-md),#FEC89A); border:1.5px solid var(--amber-md); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .frame-name { font-size:12px; font-weight:600; color:var(--text); }
+  .frame-dims { font-size:10px; color:var(--text-3); margin-top:1px; }
+  .frame-remove { margin-left:auto; width:20px; height:20px; border-radius:50%; background:rgba(44,31,20,0.08); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .frame-remove svg { width:9px; height:9px; color:var(--text-2); }
+
+  .divider { display:flex; align-items:center; gap:8px; }
+  .divider-line { flex:1; height:1px; background:var(--border); }
+  .divider-text { font-size:10px; color:var(--text-3); letter-spacing:0.5px; text-transform:uppercase; font-weight:500; }
+
+  .chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .chip { font-size:10.5px; font-weight:500; padding:4px 9px; border-radius:20px; border:1.5px solid var(--border); background:white; color:var(--text-2); cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:4px; user-select:none; }
+  .chip:hover { border-color:var(--amber); color:var(--amber); }
+  .chip.active { background:var(--amber-lt); border-color:var(--amber); color:var(--amber); }
+  .chip-dot { width:5px; height:5px; border-radius:50%; background:currentColor; opacity:0.6; }
+
+  .cta-btn { width:100%; padding:12px; border-radius:12px; border:none; background:var(--amber); color:white; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:7px; }
+  .cta-btn:hover   { background:#D96A1E; transform:translateY(-1px); box-shadow:0 4px 14px rgba(240,125,42,0.35); }
+  .cta-btn:disabled { background:var(--border-2); color:var(--text-3); cursor:not-allowed; transform:none; box-shadow:none; }
+  .cta-btn svg { width:13px; height:13px; }
+
+  .spinner { width:32px; height:32px; border:3px solid var(--amber-md); border-top-color:var(--amber); border-radius:50%; animation:spin 0.7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading-text { font-size:12.5px; color:var(--text-2); font-weight:500; }
+  .loading-sub  { font-size:10.5px; color:var(--text-3); text-align:center; line-height:1.5; }
+
+  .error-icon { width:36px; height:36px; border-radius:50%; background:var(--red-lt); display:flex; align-items:center; justify-content:center; }
+  .error-icon svg { width:18px; height:18px; color:var(--red); }
+  .error-title { font-size:13px; font-weight:600; color:var(--text); }
+  .error-msg   { font-size:11.5px; color:var(--text-2); line-height:1.5; max-width:260px; }
+  .retry-btn { margin-top:4px; padding:7px 18px; border-radius:20px; border:1.5px solid var(--border-2); background:white; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:500; color:var(--text-2); cursor:pointer; }
+  .retry-btn:hover { border-color:var(--amber); color:var(--amber); }
+
+  /* ── CARDS ── */
+  .issue-card { border-radius:9px; border:1.5px solid var(--border); background:white; overflow:hidden; cursor:pointer; transition:box-shadow 0.15s; flex-shrink:0; }
+  .issue-card:hover { box-shadow:var(--shadow); }
+  .issue-header { padding:12px 14px; display:flex; align-items:center; gap:8px; }
+  .sev-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .sev-dot.high   { background:var(--red); }
+  .sev-dot.medium { background:var(--yellow); }
+  .sev-dot.low    { background:var(--green); }
+  .issue-title { font-size:11.5px; font-weight:600; color:var(--text); flex:1; line-height:1.3; }
+  .issue-tag { font-size:9px; font-weight:600; letter-spacing:0.3px; padding:2px 6px; border-radius:20px; text-transform:uppercase; flex-shrink:0; }
+  .issue-tag.accessibility { background:var(--red-lt);    color:var(--red); }
+  .issue-tag.hierarchy     { background:var(--yellow-lt); color:var(--yellow); }
+  .issue-tag.spacing       { background:var(--green-lt);  color:var(--green); }
+  .issue-tag.contrast      { background:var(--amber-lt);  color:var(--amber); }
+  .issue-tag.typography    { background:#EEE9F8; color:#7C5CBF; }
+  .issue-body      { display:none; padding:12px 14px 14px; border-top:1px solid var(--border); }
+  .issue-body.open { display:block; }
+  .issue-row { margin-bottom:7px; }
+  .issue-row:last-child { margin-bottom:0; }
+  .row-label { font-size:9px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:var(--text-3); margin-bottom:2px; }
+  .row-text  { font-size:11px; color:var(--text-2); line-height:1.55; }
+  .fix-pill { display:inline-flex; align-items:flex-start; gap:5px; background:var(--amber-lt); border:1px solid var(--amber-md); color:var(--amber); font-size:10.5px; font-weight:500; padding:5px 8px; border-radius:20px; margin-top:3px; line-height:1.4; }
+  .fix-pill svg { width:10px; height:10px; flex-shrink:0; margin-top:2px; }
+
+  .empty-state { padding:32px 16px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .empty-icon  { width:40px; height:40px; border-radius:50%; background:var(--green-lt); display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .empty-title { font-size:13px; font-weight:600; color:var(--text); }
+  .empty-sub   { font-size:11px; color:var(--text-3); line-height:1.5; }
+
+  .new-btn { font-size:11px; color:var(--text-3); cursor:pointer; font-weight:500; display:flex; align-items:center; gap:4px; background:none; border:none; font-family:'DM Sans',sans-serif; }
+  .new-btn:hover { color:var(--amber); }
+  .new-btn svg { width:10px; height:10px; }
+  .score-pill { display:flex; align-items:center; gap:5px; border-radius:20px; padding:3px 9px; }
+  .score-pill.great { background:var(--green-lt); border:1px solid #B8E4D0; }
+  .score-pill.okay  { background:var(--yellow-lt); border:1px solid #F3D98A; }
+  .score-pill.poor  { background:var(--red-lt); border:1px solid #F5C4BA; }
+  .score-label { font-size:9.5px; font-weight:600; }
+  .score-num   { font-size:13px; font-weight:700; font-family:'DM Serif Display',serif; }
+  .score-pill.great .score-label, .score-pill.great .score-num { color:var(--green); }
+  .score-pill.okay  .score-label, .score-pill.okay  .score-num  { color:var(--yellow); }
+  .score-pill.poor  .score-label, .score-pill.poor  .score-num  { color:var(--red); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <svg viewBox="0 0 14 14" fill="none">
+      <path d="M2 3.5h10M2 7h6M2 10.5h8" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="12" cy="7" r="2" fill="#FEF0E3" stroke="white" stroke-width="1.1"/>
+    </svg>
+  </div>
+  <div>
+    <div class="plugin-name">Critique</div>
+    <div class="plugin-sub">Instant UX feedback</div>
+  </div>
+  <div class="badge">Rule-based</div>
+</div>
+
+<div id="view-input">
+  <div class="drop-zone" id="dropZone" onclick="handleDropZoneClick()">
+    <div id="drop-empty">
+      <div class="drop-icon">
+        <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="1.5" y="1.5" width="12" height="12" rx="2"/>
+          <path d="M7.5 5v5M5 7.5h5"/>
+        </svg>
+      </div>
+      <div class="drop-label">Select a frame to critique</div>
+      <div class="drop-sub">Click here to use your current Figma selection</div>
+    </div>
+    <div class="frame-preview" id="framePreview">
+      <div class="frame-thumb">🖼</div>
+      <div>
+        <div class="frame-name" id="frameName">—</div>
+        <div class="frame-dims" id="frameDims">—</div>
+      </div>
+      <button class="frame-remove" onclick="removeFrame(event)">
+        <svg viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <path d="M1.5 1.5l6 6M7.5 1.5l-6 6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-text">Focus areas</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="chips">
+    <div class="chip active" data-area="hierarchy"     onclick="toggleChip(this)"><div class="chip-dot"></div>Visual Hierarchy</div>
+    <div class="chip active" data-area="spacing"       onclick="toggleChip(this)"><div class="chip-dot"></div>Spacing</div>
+    <div class="chip active" data-area="accessibility" onclick="toggleChip(this)"><div class="chip-dot"></div>Accessibility</div>
+    <div class="chip" data-area="contrast"     onclick="toggleChip(this)"><div class="chip-dot"></div>Contrast</div>
+    <div class="chip" data-area="typography"   onclick="toggleChip(this)"><div class="chip-dot"></div>Typography</div>
+    <div class="chip" data-area="touchTargets" onclick="toggleChip(this)"><div class="chip-dot"></div>Touch Targets</div>
+  </div>
+  <button class="cta-btn" id="critiqueBtn" onclick="runCritique()" disabled>
+    <svg viewBox="0 0 13 13" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round">
+      <circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4.5v3l1.5 1"/>
+    </svg>
+    Run Critique
+  </button>
+</div>
+
+<div id="view-loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Analysing your frame…</div>
+  <div class="loading-sub">Running UX rules on spacing,<br>hierarchy and accessibility</div>
+</div>
+
+<div id="view-error">
+  <div class="error-icon">
+    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <circle cx="9" cy="9" r="7"/><path d="M9 6v4M9 12.5v.3"/>
+    </svg>
+  </div>
+  <div class="error-title">Something went wrong</div>
+  <div class="error-msg" id="errorMsg">Please select a Frame in Figma and try again.</div>
+  <button type="button" class="retry-btn" onclick="showView('input')">Try again</button>
+</div>
+
+<div id="view-results">
+  <div class="results-header">
+    <div class="results-title">Critique Report</div>
+    <div class="results-count" id="resultsCount">—</div>
+  </div>
+  <div class="issue-list" id="issueList"></div>
+  <div class="footer">
+    <button type="button" class="new-btn" id="newCritiqueBtn">
+      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+        <path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/>
+      </svg>
+      New critique
+    </button>
+    <div class="score-pill" id="scorePill">
+      <div class="score-label">UX Score</div>
+      <div class="score-num" id="scoreNum">—</div>
+      <div class="score-label">/ 100</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let hasFrame = false;
+
+  // ── KEY FIX: set issue-list height explicitly via JS ──
+  // CSS cannot reliably do this inside a Figma plugin iframe
+  // because the iframe resizes to match content, breaking all
+  // flex/overflow chains. JS reads the real rendered heights
+  // of header, results-header, and footer, then sets the
+  // list height to exactly what remains.
+  function setListHeight() {
+    var PLUGIN_H    = 560;
+    var headerH     = document.querySelector('.header').offsetHeight;
+    var resHeaderH  = document.querySelector('.results-header').offsetHeight;
+    var footerH     = document.querySelector('.footer').offsetHeight;
+    var listH       = PLUGIN_H - headerH - resHeaderH - footerH;
+    document.getElementById('issueList').style.height = listH + 'px';
+    document.getElementById('issueList').style.maxHeight = listH + 'px';
+  }
+
+  function showView(name) {
+    ['input','loading','error','results'].forEach(function(v) {
+      document.getElementById('view-' + v).style.display = 'none';
+    });
+    document.getElementById('view-' + name).style.display = 'flex';
+    if (name === 'results') {
+      // Small timeout lets the DOM render first so offsetHeight is accurate
+      setTimeout(setListHeight, 10);
+    }
+  }
+
+  function handleDropZoneClick() {
+    if (hasFrame) return;
+    parent.postMessage({ pluginMessage: { type: 'get-selection' } }, '*');
+  }
+
+  function setFrame(name, w, h) {
+    hasFrame = true;
+    document.getElementById('frameName').textContent = name;
+    document.getElementById('frameDims').textContent = w + ' × ' + h + 'px';
+    document.getElementById('drop-empty').style.display = 'none';
+    document.getElementById('framePreview').style.display = 'flex';
+    document.getElementById('dropZone').classList.add('has-frame');
+    document.getElementById('critiqueBtn').disabled = false;
+  }
+
+  function removeFrame(e) {
+    e.stopPropagation();
+    resetFrame();
+  }
+
+  function resetFrame() {
+    hasFrame = false;
+    document.getElementById('drop-empty').style.display = 'block';
+    document.getElementById('framePreview').style.display = 'none';
+    document.getElementById('dropZone').classList.remove('has-frame');
+    document.getElementById('critiqueBtn').disabled = true;
+    document.getElementById('frameName').textContent = '—';
+    document.getElementById('frameDims').textContent = '—';
+  }
+
+  function toggleChip(el) { el.classList.toggle('active'); }
+
+  function getActiveAreas() {
+    return Array.from(document.querySelectorAll('.chip.active')).map(function(c) { return c.dataset.area; });
+  }
+
+  function runCritique() {
+    if (!hasFrame) return;
+    showView('loading');
+    parent.postMessage({ pluginMessage: { type: 'run-critique', focusAreas: getActiveAreas() } }, '*');
+  }
+
+  window.onmessage = function(event) {
+    var msg = event.data.pluginMessage;
+    if (!msg) return;
+    if (msg.type === 'selection-info') setFrame(msg.name, msg.w, msg.h);
+    if (msg.type === 'results')        renderResults(msg);
+    if (msg.type === 'error') {
+      document.getElementById('errorMsg').textContent = msg.message;
+      showView('error');
+    }
+  };
+
+  function renderResults(data) {
+    var issues = data.issues;
+    var score  = data.score;
+    var list   = document.getElementById('issueList');
+    list.innerHTML = '';
+
+    document.getElementById('resultsCount').textContent =
+      issues.length === 0 ? 'No issues found' : issues.length + ' issue' + (issues.length !== 1 ? 's' : '') + ' found';
+
+    if (issues.length === 0) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">Looks clean!</div><div class="empty-sub">No issues detected.<br>Try enabling more focus chips.</div></div>';
+    } else {
+      var order = { high:0, medium:1, low:2 };
+      issues.sort(function(a, b) { return order[a.severity] - order[b.severity]; });
+      issues.forEach(function(issue, i) {
+        var card = document.createElement('div');
+        card.className = 'issue-card';
+        card.innerHTML =
+          '<div class="issue-header" onclick="toggleCard(this.parentElement)">' +
+            '<div class="sev-dot ' + issue.severity + '"></div>' +
+            '<div class="issue-title">' + issue.title + '</div>' +
+            '<div class="issue-tag ' + issue.category + '">' + issue.category + '</div>' +
+          '</div>' +
+          '<div class="issue-body' + (i === 0 ? ' open' : '') + '">' +
+            '<div class="issue-row"><div class="row-label">⚠ What\'s wrong</div><div class="row-text">' + issue.whatsWrong + '</div></div>' +
+            '<div class="issue-row"><div class="row-label">💡 Why it matters</div><div class="row-text">' + issue.whyItMatters + '</div></div>' +
+            '<div class="issue-row"><div class="row-label">✦ Fix suggestion</div>' +
+              '<div class="fix-pill"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M1 5h8M6 2l3 3-3 3"/></svg>' + issue.fixSuggestion + '</div>' +
+            '</div>' +
+          '</div>';
+        list.appendChild(card);
+      });
+    }
+
+    var tier = score >= 75 ? 'great' : score >= 50 ? 'okay' : 'poor';
+    document.getElementById('scorePill').className = 'score-pill ' + tier;
+    document.getElementById('scoreNum').textContent = score;
+    showView('results');
+  }
+
+  function toggleCard(card) {
+    card.querySelector('.issue-body').classList.toggle('open');
+  }
+
+  document.getElementById('newCritiqueBtn').addEventListener('click', function() {
+  resetFrame();
+  showView('input');
+});
+</script>
+</body>
+</html>
