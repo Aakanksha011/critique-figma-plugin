@@ -1,6 +1,6 @@
 # Critique — Figma Plugin
 
-![Critique Plugin Preview](COVERIMAGE.png)
+>![Critique Plugin Preview](COVERIMAGE.png)
 
 > Instant, rule-based UX feedback inside Figma. Select any frame, run Critique, get structured feedback in seconds.
 
