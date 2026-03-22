@@ -1,6 +1,6 @@
 # Critique — Figma Plugin
 
->![Critique Plugin Preview]<img width="471" height="151" alt="image" src="https://github.com/user-attachments/assets/1d04ec08-a26e-447f-b9ef-858ce1527141" />
+>![Critique Plugin Preview](preview.png)
 
 
 > Instant, rule-based UX feedback inside Figma. Select any frame, run Critique, get structured feedback in seconds.
